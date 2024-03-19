@@ -1,3 +1,7 @@
+# LAUCH MY PROJECT 
+if you face troubles launching the project with only yarn install, run npm install 
+
+
 # ben-or-consensus-algorithm
 
 Your goal for this exercise is to implement a version of the Ben Or consensus algorithm
