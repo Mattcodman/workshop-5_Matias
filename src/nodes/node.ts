@@ -88,30 +88,45 @@ export async function node(
         proposals.get(k)!.push(x);
         let proposal = proposals.get(k)!;
 
+
         if (proposal.length >= N - F) {
 
-          let count0 = proposal.filter((el) => el === 0).length;
-          let count1 = proposal.filter((el) => el === 1).length;
-          if (count0 > N / 2) {
-            x = 0;
-          } else if (count1 > N / 2) {
-            x = 1;
-          } else {
-            x = "?";
-          }
-          for (let i = 0; i < N; i++) {
-            fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
+        let count0 = proposal.filter((el) => el === 0).length;
+        let count1 = proposal.filter((el) => el === 1).length;
+        if (count0 > N / 2) {
+          x = 0;
+        } else if (count1 > N / 2) {
+          x = 1;
+        } else {
+          x = "?";
+        }
+          let test2=0;
+          const sendMessage = (port: number, data: { k: string, x: string, messageType: string }) => {
+            fetch(`http://localhost:${port}/message`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ k: k, x: x, messageType: "vote" }),
+              body: JSON.stringify(data),
             });
+          };
+
+
+          for (let i = 0; i < N; i++) {
+            sendMessage(BASE_NODE_PORT + i, { k: k, x: x, messageType: "vote" });
+            test2++;
           }
+          console.log(test2);
+
+
         }
-      } else if (messageType === "vote") {
+      }
+
+
+      else if (messageType === "vote") {
         if (!votes.has(k)) {
           votes.set(k, []);
+
         }
         votes.get(k)!.push(x);
         let vote = votes.get(k)!;
@@ -124,29 +139,37 @@ export async function node(
             currentNodeState.x = 0;
             currentNodeState.decided = true;
           } else if (count1 >= F + 1) {
+
             currentNodeState.x = 1;
             currentNodeState.decided = true;
           } else {
-            if (count0 + count1 > 0 && count0 > count1) {
-              currentNodeState.x = 0;
-            } else if (count0 + count1 > 0 && count0 < count1) {
-              currentNodeState.x = 1;
+            const isCount0GreaterThanCount1 = count0 > count1;
+            const isCount0EqualToCount1 = count0 === count1;
+
+
+            if (count0 + count1 > 0) {
+              currentNodeState.x = isCount0GreaterThanCount1 ? 0 : 1;
             } else {
               currentNodeState.x = Math.random() > 0.5 ? 0 : 1;
             }
+
             currentNodeState.k = k + 1;
 
-            for (let i = 0; i < N; i++) {
-              fetch(`http://localhost:${BASE_NODE_PORT + i}/message`, {
+            const sendMessage = (port: number, data: any) => {
+              fetch(`http://localhost:${BASE_NODE_PORT + port}/message`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                  k: currentNodeState.k,
-                  x: currentNodeState.x,
-                  messageType: "propose",
-                }),
+                body: JSON.stringify(data),
+              });
+            };
+
+            for (let i = 0; i < N; i++) {
+              sendMessage(i, {
+                k: currentNodeState.k,
+                x: currentNodeState.x,
+                messageType: "propose",
               });
             }
           }
@@ -157,10 +180,6 @@ export async function node(
     console.log(testcounter)
 
   });
-
-
-
-
 
   node.get("/start", async (req, res) => {
     // Wait until all nodes are ready
